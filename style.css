@@ -1,0 +1,51 @@
+body{
+    font-family: sans-serif;
+    background-color: white;
+    background-image: url('https://imagez.tmz.com/image/3c/4by3/2020/03/13/3cc39427afeb41b09b6b2751155c6ccc_xl.jpg');
+    background-size: cover;
+    background-position: center;
+    background-repeat: no-repeat;
+    text-align: center;
+    margin: 0;
+    padding: 20px;
+}
+
+h1{
+    margin: 10px 0;
+    color: white;
+    text-shadow: 1px 1px 3px black;
+}
+
+.game-info{
+    margin-bottom: 20px;
+    background-color: rgba(0, 0, 0, 0.5);
+    color: white;
+    display: inline-block;
+    padding: 10px 20px;
+    border-radius: 10px;
+}
+
+.grid{
+    height: 640px;
+    width: 640px;
+    margin: 0 auto;
+    display: flex;
+    flex-wrap: wrap;
+    border-radius: 25px;
+    border: 3px solid black;
+    
+}
+
+/*display flex and flexwrap is to keep the divs from stacking over each other  */
+
+.grid div {
+    width: 80px;
+    height: 80px;
+    box-sizing: border-box;
+    border: 1px solid lightgray;
+    margin: 0;
+    padding: 0;
+    background: no-repeat;
+    background-size: contain;
+    background-position: center;
+}
