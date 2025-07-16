@@ -13,10 +13,31 @@ document.addEventListener('DOMContentLoaded', () => {
         'url(./images/terry.png)',
         'url(./images/mel.png)'
     ]
+    const agtBuzzer = [
+        'url(./images/golden-buzzer.jpg)',
+        'url(./images/red-buzzer.jpg)'
+    ]
     let score = 0;
-    let timeLeft = 60;
+    let timeLeft = 180;
     let timerId;
     let gameActive = true;
+
+
+    function isGoldenBuzzer(imageUrl) {
+        return imageUrl === agtBuzzer[0]
+    }
+
+    function startTimer() {
+        timerId = setInterval(() => {
+            timeLeft--;
+            timerDisplay.textContent = timeLeft;
+
+            if (timeLeft <= 0) {
+                clearInterval(timerId)
+                endGame()
+            }
+        }, 1000)
+    }
 
     //this func builds grid
     function createBoard() {
@@ -31,7 +52,7 @@ document.addEventListener('DOMContentLoaded', () => {
             squares.push(square)// we push the square into the array called squares
         }
     }
-    
+
 
     function updateScore(points) {
         score += points
@@ -61,10 +82,24 @@ document.addEventListener('DOMContentLoaded', () => {
 
         matches = [...new Set(matches)]
 
+        const allGolden = matches.length === 3 && matches.every(index => isGoldenBuzzer(squares[index].style.backgroundImage))
+
+        if (allGolden) {
+            matches.forEach(index => {
+                squares[index].classList.add('gold-explosion')
+                setTimeout(() => squares[index].classList.remove('gold-explosion'), 800)
+            })
+            updateScore(10)
+        }
+
         matches.forEach(index => {
+            if (squares[index].dataset.isBuzzer === "true") {
+                updateScore(5)
+            }
             squares[index].style.backgroundImage = ""
+            squares[index].dataset.isBuzzer = "false"
         })
-        if (matches.length > 0) updateScore(matches.length)
+        if (matches.length > 0 && !allGolden) updateScore(matches.length)
 
         return matchFound;
     }
@@ -89,8 +124,22 @@ document.addEventListener('DOMContentLoaded', () => {
             }
         }
         matches = [...new Set(matches)]
+
+        const allGolden = matches.length === 3 && matches.every(index => isGoldenBuzzer(squares[index].style.backgroundImage))
+
+        if (allGolden) {
+            matches.forEach(index => {
+                squares[index].classList.add('gold-explosion')
+                setTimeout(() => squares[index].classList.remove('gold-explosion'), 800)
+            })
+            updateScore(10)
+        }
         matches.forEach(index => {
+            if (squares[index].dataset.isBuzzer === "true") {
+                updateScore(5)
+            }
             squares[index].style.backgroundImage = ""
+            squares[index].dataset.isBuzzer = "false"
         })
         if (matches.length > 0) updateScore(matches.length)
         return matchFound
@@ -101,7 +150,9 @@ document.addEventListener('DOMContentLoaded', () => {
         for (let i = 0; i < 56; i++) {
             if (squares[i + width].style.backgroundImage === "") {
                 squares[i + width].style.backgroundImage = squares[i].style.backgroundImage
+                squares[i + width].dataset.isBuzzer = squares[i].dataset.isBuzzer
                 squares[i].style.backgroundImage = ""
+                squares[i].dataset.isBuzzer = "false"
             }
         }
     }
@@ -109,50 +160,54 @@ document.addEventListener('DOMContentLoaded', () => {
     function refillTopRow() {
         for (let i = 0; i < width; i++) {
             if (squares[i].style.backgroundImage === "") {
-                let randomFace = Math.floor(Math.random() * agtFaces.length)
-                squares[i].style.backgroundImage = agtFaces[randomFace]
+                let randomNum = Math.random()
+                if (randomNum < 0.15) {
+                    let buzzerIndex = Math.floor(Math.random() * agtBuzzer.length)
+                    squares[i].style.backgroundImage = agtBuzzer[buzzerIndex]
+                    squares[i].dataset.isBuzzer = "true"
+                } else {
+                    let randomFace = Math.floor(Math.random() * agtFaces.length)
+                    squares[i].style.backgroundImage = agtFaces[randomFace]
+                    squares[i].dataset.isBuzzer = "false"
+                }
             }
+
         }
     }
 
-    function startTimer(){
-        timerId = setInterval(()=>{
-            timeLeft--;
-            timerDisplay.textContent = timerLeft;
 
-            if(timeLeft <= 0){
-                clearInterval(timerId)
-                endGame()
-            }
-        }, 1000)
-    }
 
-    function endGame(){
+
+
+    function endGame() {
         gameActive = false;
         alert('Time is up! Level cleared!')
     }
 
     function gameLoop() {
-    if (!gameActive) return; // stops the loop if game ended
+        if (!gameActive) return; // stops the loop if game ended
 
-    const rowMatch = checkRowForThree();
-    const colMatch = checkColumnForThree();
+        const rowMatch = checkRowForThree();
+        const colMatch = checkColumnForThree();
 
-    if (rowMatch || colMatch) {
-        moveFacesDown();
-
-        setTimeout(() => {
+        if (rowMatch || colMatch) {
+            moveFacesDown();
             refillTopRow();
-            gameLoop();
-        }, 300);
-    } else {
-        setTimeout(gameLoop, 100);
+
+            setTimeout(gameLoop, 60);
+        } else {
+            setTimeout(gameLoop, 30);
+        }
     }
-}
+
+    let faceBeingDragged
+    let squareIdBeingDragged
+    let faceBeingReplaced
+    let squareBeingReplaced
 
 
     function dragStart() {
-        if(!gameActive) return;
+        if (!gameActive) return;
         faceBeingDragged = this.style.backgroundImage //faceBeingDropped has the faces of the judges stored in it's arr. this refers to the selected div/square that was just clicked and started being dragged
         squareIdBeingDragged = parseInt(this.id) // this.id gets the id of the attr. of the square being dragged
     }
@@ -172,35 +227,49 @@ document.addEventListener('DOMContentLoaded', () => {
 
         this.style.backgroundImage = faceBeingDragged
         squares[squareIdBeingDragged].style.backgroundImage = faceBeingReplaced // we set the square of the face dragged from to show the face replaced, swaps the 2 faces
+
+        const tempBuzzer = squares[squareBeingReplaced].dataset.isBuzzer
+        squares[squareBeingReplaced].dataset.isBuzzer = squares[squareIdBeingDragged].dataset.isBuzzer
+        squares[squareIdBeingDragged].dataset.isBuzzer = tempBuzzer
+
     }
 
     function dragEnd() {
-    let validMoves = [
-        squareIdBeingDragged - 1,
-        squareIdBeingDragged - width,
-        squareIdBeingDragged + 1,
-        squareIdBeingDragged + width
-    ]
-    let isValidMove = validMoves.includes(squareBeingReplaced)
+        let validMoves = [
+            squareIdBeingDragged - 1,
+            squareIdBeingDragged - width,
+            squareIdBeingDragged + 1,
+            squareIdBeingDragged + width
+        ]
+        let isValidMove = validMoves.includes(squareBeingReplaced)
 
-    if (squareBeingReplaced && isValidMove) {
-        let wasMatch = checkRowForThree() || checkColumnForThree()
+        if (squareBeingReplaced && isValidMove) {
+            let wasMatch = checkRowForThree() || checkColumnForThree()
 
-        if (!wasMatch) {
+            if (!wasMatch) {
+                squares[squareBeingReplaced].style.backgroundImage = faceBeingReplaced
+                squares[squareIdBeingDragged].style.backgroundImage = faceBeingDragged
+
+                const tempBuzzer = squares[squareBeingReplaced].dataset.isBuzzer
+                squares[squareBeingReplaced].dataset.isBuzzer = squares[squareIdBeingDragged].dataset.isBuzzer
+                squares[squareIdBeingDragged].dataset.isBuzzer = tempBuzzer
+            }
+        } else {
             squares[squareBeingReplaced].style.backgroundImage = faceBeingReplaced
             squares[squareIdBeingDragged].style.backgroundImage = faceBeingDragged
-        }
-    } else {
-        squares[squareBeingReplaced].style.backgroundImage = faceBeingReplaced
-        squares[squareIdBeingDragged].style.backgroundImage = faceBeingDragged
-    }
-    faceBeingDragged = null
-    squareIdBeingDragged = null
-    faceBeingReplaced = null
-    squareBeingReplaced = null
-}
 
-createBoard() // now we call the function to actually build the board and see if it works
+            const tempBuzzer = squares[squareBeingReplaced].dataset.isBuzzer
+                squares[squareBeingReplaced].dataset.isBuzzer = squares[squareIdBeingDragged].dataset.isBuzzer
+                squares[squareIdBeingDragged].dataset.isBuzzer = tempBuzzer
+        }
+
+        faceBeingDragged = null
+        squareIdBeingDragged = null
+        faceBeingReplaced = null
+        squareBeingReplaced = null
+    }
+
+    createBoard() // now we call the function to actually build the board and see if it works
     squares.forEach(square => { // loops through each square in the squares arr. it listens for certain drag and drop e and calls the functions when those e happen
         square.addEventListener('dragstart', dragStart) // when player starts dragging a square dragStart runs
         square.addEventListener('dragover', dragOver) // when dragged item is moved over a square dragOver runs
@@ -208,12 +277,12 @@ createBoard() // now we call the function to actually build the board and see if
         square.addEventListener('drop', dragDrop) // when the dragged item is dropped on a square dragDrop runs
         square.addEventListener('dragend', dragEnd) // when the drag finishes dragEnd runs
     })
-     
+
     startTimer()
     gameLoop()
 
     function gameLoop() {
-        if(!gameActive) return;
+        if (!gameActive) return;
         const rowMatch = checkRowForThree()
         const colMatch = checkColumnForThree()
 
@@ -228,7 +297,7 @@ createBoard() // now we call the function to actually build the board and see if
             setTimeout(gameLoop, 100)
         }
     }
-   
+
 
 
 
