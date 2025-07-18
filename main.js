@@ -1,11 +1,15 @@
 //this waits for the html to become fully loaded
 // console.log('DOM fully loaded')
 document.addEventListener('DOMContentLoaded', () => {
-
-    const grid = document.querySelector('.grid')// i am telling my js file to look at my html file to grab the element with the class name grid
-    const timerDisplay = document.querySelector('#timer')
+    agtCrushGame()
+})
+function agtCrushGame() {
+    const grid = document.querySelector(".grid")// i am telling my js file to look at my html file to grab the element with the class name grid
+    const scorerDisplay = document.querySelector("#score")
     const width = 8 //tellin my js file that i want the width to be 8 from now on
     const squares = []// keeps track of each square that's made and it gets stored in the empty array
+    let score = 0
+
     const agtFaces = [ //stores judges face images
         'url(./images/sofia.png)',
         'url(./images/simon.png)',
@@ -18,29 +22,6 @@ document.addEventListener('DOMContentLoaded', () => {
         'url(./images/golden-buzzer.jpg)',
         'url(./images/red-buzzer.jpg)'
     ]
-    let score = 0;
-    let timeLeft = 180;
-    let timerId;
-    let gameActive = true;
-
-
-    function isGoldenBuzzer(imageUrl) {
-        return imageUrl === agtBuzzer[0]
-    }
-
-    function startTimer() {
-        // console.log('Timer started')
-        timerId = setInterval(() => {
-            timeLeft--;
-            timerDisplay.textContent = timeLeft;
-            // console.log('Time left:')
-
-            if (timeLeft <= 0) {
-                clearInterval(timerId)
-                endGame()
-            }
-        }, 1000)
-    }
 
     //this func builds grid
     function createBoard() {
@@ -52,307 +33,439 @@ document.addEventListener('DOMContentLoaded', () => {
 
             let randomFace = Math.floor(Math.random() * agtFaces.length) //this picks ajudges face or image at random
             square.style.backgroundImage = agtFaces[randomFace]
-            square.dataset.isBuzzer = "false" //new code-----
             grid.appendChild(square) // we add the div to html grid
             squares.push(square)// we push the square into the array called squares
         }
     }
+    createBoard()
+
+    let squareBeingDragged
+    let squareBeingDraggedId
+    let squareBeingDraggedImage
+
+    let squareBeingReplaced
+    let squareBeingReplacedId
+    let squareBeingReplacedImage
 
 
-    function updateScore(points) {
-        score += points
-        // console.log(`Score updated by ${points}, total score:`, score)
-        document.querySelector('#score').textContent = score
+
+
+
+    squares.forEach(square => {
+        square.setAttribute('draggable', true)
+        square.addEventListener('dragstart', dragStart)
+        square.addEventListener('dragover', dragOver)
+        square.addEventListener('dragenter', dragEnter)
+        square.addEventListener('drop', dragDrop)
+        square.addEventListener('dragend', dragEnd)
+
+    })
+
+    function dragStart() {
+        squareBeingDragged = this
+        squareBeingDraggedId = parseInt(this.id)
+        squareBeingDraggedImage = this.style.backgroundImage
+        console.log("Drag start:", squareBeingDraggedId, squareBeingDraggedImage)
+    }
+    function dragOver(e) {
+        e.preventDefault()
     }
 
-    function checkRowForThree() {
-        // console.log('Checking row of three')
-        let matchFound = false
-        let matches = []
+    function dragEnter(e) {
+        e.preventDefault()
+    }
 
+    function dragLeave() {
+
+    }
+
+    function isMatchFound() {
+        return (
+            checkRowForFive() ||
+            checkColumnForFive() ||
+            checkLShape() ||
+            checkRowForFour() ||
+            checkRowForThree() ||
+            checkColumnForThree()
+        )
+    }
+
+    function dragDrop() {
+        squareBeingReplaced = this
+        squareBeingReplacedId = parseInt(this.id)
+        squareBeingReplacedImage = this.style.backgroundImage
+        console.log("Drag drop:", squareBeingReplacedId, squareBeingDraggedImage)
+    }
+    console.log(squareBeingDraggedId, squareBeingReplacedId)
+
+    function dragEnd() {
+        const validMoves = [
+            squareBeingDraggedId - 1,
+            squareBeingDraggedId - width,
+            squareBeingDraggedId + 1,
+            squareBeingDraggedId + width
+        ]
+
+        const isValidMove = validMoves.includes(squareBeingReplacedId)
+
+        console.log('Drag end:', {
+            draggedId: squareBeingDraggedId,
+            replaceID: squareBeingReplacedId,
+            isValidMove: isValidMove
+        })
+
+        if (!squareBeingReplaced || isValidMove) {
+            console.log('Invalid move, reverting...')
+            if (squareBeingDragged && squareBeingReplaced) {
+                squares[squareBeingDraggedId].style.backgroundImage = squareBeingDraggedImage
+                squares[squareBeingReplacedId].style.backgroundImage = squareBeingReplacedImage
+            }
+            resetDragVars()
+            return
+        }
+        // this swaps images temporarily
+        squares[squareBeingDraggedId].style.backgroundImage = squareBeingReplacedImage
+        squares[squareBeingReplacedId].style.backgroundImage = squareBeingDraggedImage
+
+        // this checks for matches
+        const isMatch = isMatchFound()
+        console.log('Match found:', isMatch)
+
+        if (!isMatch) {
+            console.log('No match, reverting... swap')
+            squares[squareBeingDraggedId].style.backgroundImage = squareBeingDraggedImage
+            squares[squareBeingReplacedId].style.backgroundImage = squareBeingReplacedImage
+        } else {
+            console.log('Match found! Move accepted.')
+            moveFacesDown()
+        }
+        resetDragVars
+    }
+
+    function resetDragVars() {
+        squareBeingDragged = null
+        squareBeingReplaced = null
+        squareBeingDraggedId = null
+        squareBeingReplacedId = null
+        squareBeingDraggedImage = null
+        squareBeingReplacedImage = null
+    }
+
+    function getJudgeName(imageUrl) {
+        if (!imageUrl || imageUrl === "") return ""
+        const match = imageUrl.match(/\/images\/(.*?)\./)
+        return match ? match[1] : ""
+    }
+    console.log(getJudgeName('url("./images/simon.png")'))
+
+    function moveFacesDown() {
+        let moved
+        do {
+            moved = false
+            for (let i = (width * width) - width - 1; i >= 0; i--) {
+                if (squares[i + width].style.backgroundImage === "" && squares[i].style.backgroundImage !== "") {
+                    console.log(`Moving piece from ${i} down to ${i + width}`)
+                    squares[i + width].style.backgroundImage = squares[i].style.backgroundImage
+                    squares[i].style.backgroundImage = ""
+                    moved = true
+                }
+            }
+        } while (moved)
+
+        // this refills the top row with new random faces if empty
+        for (let i = 0; i < width; i++) {
+            if (squares[i].style.backgroundImage === "") {
+                let randomFace = Math.floor(Math.random() * agtFaces.length)
+                squares[i].style.backgroundImage = agtFaces[randomFace]
+                console.log(`Refiiling top row square ${i} with new face`)
+            }
+        }
+    } console.log("Completed movesFacesDown function ")
+
+
+    function getBuzzerType(imageUrl) {
+        if (!imageUrl) return ""
+
+        const match = imageUrl.match(/\/([a-z]+)-buzzer\.(png|jpg|jpeg)/i)
+        const result = match ? match[1] : ""
+
+        console.log("Extracted buzzer from:", imageUrl, "→", result) //find another way to console.log
+        return result
+    }
+    console.log(getBuzzerType('url("./images/golden-buzzer.jpg")'))
+
+    function activateAgtFaces(index) {
+        const neighbors = [
+            index,
+            index - 1, index + 1,
+            index - width, index + width,
+            index - width - 1, index - width + 1,
+            index + width - 1, index + width + 1
+        ]
+
+        neighbors.forEach(i => {
+            if (squares[i]) {
+                squares[i].style.backgroundImage = ""
+                squares[i].dataset.special = ""
+                console.log(`Cleared square at index ${i}`)
+            }
+        })
+    }
+    activateAgtFaces()
+
+    function activateBuzzerBlast(index, direction) {
+        if (!squares[index]) return
+
+        const image = squares[index].style.backgroundImage
+        const isGolden = image.includes("golden-buzzer.jpg")
+        const isRed = image.includes("red-buzzer.jpg")
+
+        if (!isGolden && !isRed) return
+
+        if (direction === "horizontal") {
+            const rowStart = Math.floor(index / width) * width
+            for (let i = rowStart; i < rowStart + width; i++) {
+                if (squares[i]) {
+                    squares[i].style.backgroundImage = ""
+                    squares[i].dataset.special = ""
+                }
+            }
+        } else if (direction === "vertical") {
+            for (let i = index; i < width * width; i += width) {
+                if (squares[i]) {
+                    squares[i].style.backgroundImage = ""
+                    squares[i].dataset.special = ""
+                }
+            }
+        }
+    }
+    activateBuzzerBlast()
+
+
+    function checkRowForFive() {
+        const notValid = []
         for (let i = 0; i < 64; i++) {
-            const rowStart = Math.floor(i / width) * width
-            const rowEnd = rowStart + (width - 3)
-            if (i > rowEnd) continue
+            if (i % width > width - 5) notValid.push(i)
+        }
+        for (let i = 0; i < 64; i++) {
+            if (notValid.includes(i)) continue
 
+            const rowOfFive = [i, i + 1, i + 2, i + 3, i + 4]
             const decidedFace = squares[i].style.backgroundImage
             const isBlank = decidedFace === ""
 
-            if (
-                squares[i + 1] &&
-                squares[i + 2] &&
-                squares[i].style.backgroundImage === decidedFace &&
-                squares[i + 1].style.backgroundImage === decidedFace &&
-                squares[i + 2].style.backgroundImage === decidedFace &&
-                !isBlank
-            ) {
-                // console.log(`Row match at indexes: ${1}, ${i + 1}, ${i + 2}`)
-                matches.push(i, i + 1, i + 2)
-                matchFound = true
+            if (rowOfFive.every(index =>
+                squares[index] && squares[index].style.backgroundImage === decidedFace && !isBlank
+            )) {
+                rowOfFive.forEach(index => {
+                    squares[index].style.backgroundImage = ""
+                })
+                return true
             }
         }
+        return false
+    }
 
-        matches = [...new Set(matches)]
 
-        const allGolden = matches.length === 3 && matches.every(index => isGoldenBuzzer(squares[index].style.backgroundImage))
+    function checkColumnForFive() {
+        for (let i = 0; i < 24; i++) {
+            let columnOfFive = [i, i + width, i + width * 2, i + width * 3, i + width * 4]
+            let decidedFace = squares[i].style.backgroundImage
+            let isBlank = decidedFace === ""
 
-        if (allGolden) {
-            // console.log('Golden buzzer match!')
-            matches.forEach(index => {
-                squares[index].classList.add('gold-explosion')
-                setTimeout(() => squares[index].classList.remove('gold-explosion'), 800)
-            })
-            updateScore(10)
+            if (columnOfFive.every(function (index) {
+                return squares[index].style.backgroundImage === decidedFace && !isBlank
+            })) {
+                columnOfFive.forEach(function (index) {
+                    squares[index].style.backgroundImage = ""
+                })
+                return true
+            }
         }
+        return false
+    }
 
-        matches.forEach(index => {
-            if (squares[index].dataset.isBuzzer === "true") updateScore(5)
-            squares[index].style.backgroundImage = ""
-            squares[index].dataset.isBuzzer = "false"
-        })
-        if (matches.length > 0 && !allGolden) updateScore(matches.length)
 
-        return matchFound;
+    function checkRowForFour() {
+        for (let i = 0; i < 60; i++) {
+            const rowOfFour = [i, i + 1, i + 2, i + 3]
+            const decidedFace = squares[i].style.backgroundImage
+            const isBlank = decidedFace === ""
+
+            const notValid = [
+                5, 6, 7, 13, 14, 15, 21, 22, 23, 29, 30, 31,
+                37, 38, 39, 45, 46, 47, 53, 54, 55
+            ]
+            if (notValid.includes(i)) continue
+
+            if (rowOfFour.every(index =>
+                squares[index].style.backgroundImage === decidedFace && !isBlank
+            )) {
+                console.log("Row of Four at:", rowOfFour)
+
+                score += 4
+                scorerDisplay.innerHTML = score
+
+                const buzzerImage = agtBuzzer[Math.floor(Math.random() * agtBuzzer.length)]
+
+                const specialIndex = rowOfFour[Math.floor(Math.random() * 4)]
+                squares[specialIndex].style.backgroundImage = buzzerImage
+                squares[specialIndex].dataset.special = "buzzer"
+
+                console.log("Buzzer created at index", specialIndex, ":", buzzerImage)
+
+                rowOfFour.forEach(index => {
+                    if (index !== specialIndex) {
+                        squares[index].style.backgroundImage = ""
+                        squares[index].dataset.special = ""
+                    }
+                })
+            }
+        }
+    }
+
+
+
+    function checkColumnForFour() {
+        for (let i = 0; i < 39; i++) {
+            const columnOfFour = [i, i + width, i + width * 2, i + width * 3]
+            const decidedFace = squares[i].style.backgroundImage
+            const isBlank = decidedFace === ""
+
+            if (columnOfFour.every(index => squares[index].style.backgroundImage === decidedFace && !isBlank)) {
+                console.log("Column of 4 match at:", columnOfFour)
+
+                score += 4
+                scorerDisplay.innerHTML = score
+
+                const buzzerImage = agtBuzzer[Math.floor(Math.random() * agtBuzzer.length)]
+
+                const specialIndex = columnOfFour[Math.floor(Math.random() * 4)]
+                squares[specialIndex].style.backgroundImage = buzzerImage
+                squares[specialIndex].dataset.special = "buzzer"
+
+                console.log("Buzzer created at index", specialIndex, ":", buzzerImage)
+
+                columnOfFour.forEach(index => {
+                    if (index !== specialIndex) {
+                        squares[index].style.backgroundImage = ""
+                        squares[index].dataset.special = ""
+                    }
+                })
+            }
+        }
+    }
+
+
+    function checkRowForThree() {
+        for (let i = 0; i < 64; i++) {
+            const rowOfThree = [i, i + 1, i + 2]
+            const decidedFace = squares[i].style.backgroundImage
+            const isBlank = decidedFace === ""
+
+            const notValid = [
+                6, 7, 14, 15, 22, 23, 30, 31,
+                38, 39, 46, 47, 54, 55, 62, 63
+            ]
+            if (notValid.includes(i)) continue
+
+            if (rowOfThree.every(index =>
+                squares[index] && squares[index].style.backgroundImage === decidedFace && !isBlank
+            )) {
+                //this clears matched squares
+                rowOfThree.forEach(index => {
+                    squares[index].style.backgroundImage = ""
+                })
+                return true
+            }
+        }
+        return false // makes sure to return false if no match is found
     }
 
 
     function checkColumnForThree() {
-        // console.log('Checking column for three')
-        let matchFound = false
-        let matches = []
-
         for (let i = 0; i < 47; i++) {
+            const columnOfThree = [i, i + width, i + width * 2]
+            const judgeImage = squares[i].style.backgroundImage
+            const isBlank = judgeImage === ""
 
-            const decidedFace = squares[i].style.backgroundImage
-            const isBlank = decidedFace === ""
+            const judgeName = getJudgeName(judgeImage)
 
-            if (
-                squares[i + width].style.backgroundImage === decidedFace &&
-                squares[i + width * 2].style.backgroundImage === decidedFace &&
-                !isBlank
-            ) {
-                // console.log(`Column match at indexes: ${i}, ${i + width}, ${i + width * 2}`)
-                matches.push(i, i + width, i + width * 2)
-                matchFound = true
-            }
-        }
-        matches = [...new Set(matches)]
+            if (columnOfThree.every(index => {
+                const img = squares[index].style.backgroundImage
+                return !isBlank && getJudgeName(img) === judgeName
+            })) {
+                console.log("Column of 3 matched at", columnOfThree)
 
-        const allGolden = matches.length === 3 && matches.every(index => isGoldenBuzzer(squares[index].style.backgroundImage))
+                score += 3
+                scorerDisplay.innerHTML = score
 
-        if (allGolden) {
-            // console.log('Golden buzzer column match!')
-            matches.forEach(index => {
-                squares[index].classList.add('gold-explosion')
-                setTimeout(() => squares[index].classList.remove('gold-explosion'), 800)
-            })
-            updateScore(10)
-        }
-        matches.forEach(index => {
-            if (squares[index].dataset.isBuzzer === "true") updateScore(5)
-            squares[index].style.backgroundImage = ""
-            squares[index].dataset.isBuzzer = "false"
-        })
-        if (matches.length > 0 && !allGolden) updateScore(matches.length)
-        return matchFound
-    }
+                const specialIndex = columnOfThree[Math.floor(Math.random() * 3)]
+                const buzzerImage = agtBuzzer[Math.floor(Math.random() * agtBuzzer.length)]
 
+                columnOfThree.forEach(index => {
+                    if (index === specialIndex) {
+                        squares[index].style.backgroundImage = buzzerImage
+                        squares[index].dataset.special = "buzzer"
 
-    function moveFacesDown() {
-        console.log('Moving faces down')
-        for (let i = (width * width) - width - 1; i >= 0; i--) {
-            let currentIndex = i
-
-            while (
-                currentIndex + width < width * width &&
-                squares[currentIndex + width].style.backgroundImage === "" &&
-                squares[currentIndex].style.backgroundImage !== ""
-            ) {
-                squares[currentIndex + width].style.backgroundImage = squares[currentIndex].style.backgroundImage
-                squares[currentIndex + width].dataset.isBuzzer = squares[currentIndex].dataset.isBuzzer
-
-                squares[currentIndex].style.backgroundImage = ""
-                squares[currentIndex].dataset.isBuzzer = "false"
-
-                currentIndex += width
+                        console.log("Col3: Buzzer created at", index)
+                    } else {
+                        squares[index].style.backgroundImage = ""
+                        squares[index].dataset.special = ""
+                    }
+                })
             }
         }
     }
 
 
+    function checkLShape() {
+        for (let i = 0; i < 64; i++) {
+            let decidedFace = squares[i].style.backgroundImage
+            let isBlank = decidedFace === ""
 
-    function refillTopRow() {
-        // console.log('Refilling top row')
-        for (let i = 0; i < width; i++) {
-            if (squares[i].style.backgroundImage === "") {
-                let randomNum = Math.random()
-                if (randomNum < 0.15) {
-                    let buzzerIndex = Math.floor(Math.random() * agtBuzzer.length)
-                    squares[i].style.backgroundImage = agtBuzzer[buzzerIndex]
-                    squares[i].dataset.isBuzzer = "true"
-                    console.log(`Refilled square ${i} with Buzzer`)
-                } else {
-                    let randomFace = Math.floor(Math.random() * agtFaces.length)
-                    squares[i].style.backgroundImage = agtFaces[randomFace]
-                    squares[i].dataset.isBuzzer = "false"
-                    console.log(`Refilled square ${i} with face`)
+            let shape1 = [i, i + 1, i + 2, i + width, i + width * 2] // L pointing down-right
+            let shape2 = [i, i - 1, i - 2, i + width, i + width * 2] // L pointing down-left
+            let shape3 = [i, i + 1, i + 2, i - width, i - width * 2] // L pointing up-right
+            let shape4 = [i, i - 1, i - 2, i - width, i - width * 2] // L ponting up-left
+            let shape5 = [i, i + width, i + width * 2, i + width * 2 + 1, i + width * 2 + 2] // L rotated in mirror L
+            let shape6 = [i, i + width, i + width * 2, i + width * 2 - 1, i + width * 2 - 2] // L rotated in mirror L upside down
+
+            let allShapes = [shape1, shape2, shape3, shape4, shape5, shape6]
+
+            for (let j = 0; j < allShapes.length; j++) {
+                let shape = allShapes[j]
+
+                if (shape.every(function (index) {
+                    return index >= 0 && index < 64 &&
+                        squares[index].style.backgroundImage === decidedFace && !isBlank
+                })) {
+                    shape.forEach(function (index) {
+                        squares[index].style.backgroundImage = ""
+                    })
+                    return true
                 }
             }
 
         }
+        return false
     }
 
+    window.setInterval(function () {
 
+        checkColumnForFive()
+        checkRowForFive()
+        checkLShape()
+        checkColumnForFour()
+        checkRowForFour()
+        checkColumnForThree()
+        checkRowForThree()
+        moveFacesDown()
 
-
-
-    function endGame() {
-        console.log('Game ended')
-        gameActive = false;
-        alert('Time is up! Try again!')
-    }
-
-    function gameLoop() {
-        if (!gameActive) return; // stops the loop if game ended
-        // console.log('Game loop running')
-
-
-        const loopUntilStable = () => {
-            const rowMatch = checkRowForThree();
-            const colMatch = checkColumnForThree();
-
-
-            if (rowMatch || colMatch) {
-                console.log("Match found, progressing drops and refill...")
-                moveFacesDown();
-                refillTopRow()
-
-                setTimeout(loopUntilStable, 200)
-            } else {
-                setTimeout(gameLoop, 100)
-            }
-
-        }
-        loopUntilStable()
-    }
-
-    let faceBeingDragged
-    let squareIdBeingDragged
-    let faceBeingReplaced
-    let squareBeingReplaced
-
-
-    function dragStart() {
-        if (!gameActive) return;
-        faceBeingDragged = this.style.backgroundImage //faceBeingDropped has the faces of the judges stored in it's arr. this refers to the selected div/square that was just clicked and started being dragged
-        squareIdBeingDragged = parseInt(this.id) // this.id gets the id of the attr. of the square being dragged
-
-        // console.log("dragStart:")
-        // console.log(" - Face being dragged:", faceBeingDragged)
-        // console.log(" - Square ID being dragged:", squareIdBeingDragged)
-    }
-
-    function dragOver(e) { //this function will run when a dragged item is moved over a drop target
-        e.preventDefault() //this function allows the dragged item to be dropped on the target square
-        // console.log("dragOver: hovering over square", e.target.id)
-    }
-    // both dragOver and dragEnter functions work together to allow the drop action
-
-    function dragEnter(e) { // this runs when the dragged item enters a drop target
-        e.preventDefault() // this allows the drop e to work on this square
-        // console.log("dragEnter: entered square", e.target.id)
-    }
-
-    function dragDrop() { // this runs when you drop the dragged face onto another square
-        faceBeingReplaced = this.style.backgroundImage // 
-        squareBeingReplaced = parseInt(this.id) // gets the id of the square and converts it to a number for future use
-
-        // console.log("dragDrop:")
-        // console.log(" - Face being replaced:", faceBeingReplaced)
-        // console.log(" - Square ID being replaced", squareBeingReplaced)
-
-        this.style.backgroundImage = faceBeingDragged
-        squares[squareIdBeingDragged].style.backgroundImage = faceBeingReplaced // we set the square of the face dragged from to show the face replaced, swaps the 2 faces
-
-        const temp = squares[squareBeingReplaced].dataset.isBuzzer
-        squares[squareBeingReplaced].dataset.isBuzzer = squares[squareIdBeingDragged].dataset.isBuzzer
-        squares[squareIdBeingDragged].dataset.isBuzzer = temp
-
-        // console.log(" - Swapped images between squares", squareIdBeingDragged, "and", squareBeingReplaced)
-
-    }
-
-    function dragEnd() {
-        if (squareBeingReplaced === null) return
-
-        // console.log("dragEnd:")
-        // console.log(" - Checking move validity...")
-
-        let validMoves = [
-            squareIdBeingDragged - 1,
-            squareIdBeingDragged - width,
-            squareIdBeingDragged + 1,
-            squareIdBeingDragged + width
-        ]
-        let isValidMove = validMoves.includes(squareBeingReplaced)
-
-        // console.log(" - Is valid move?", isValidMove)
-
-        if (isValidMove) {
-            let wasMatch = checkRowForThree() || checkColumnForThree()
-
-            // console.log(" - Was match after drop?", wasMatch)
-
-            if (!wasMatch) {
-                squares[squareBeingReplaced].style.backgroundImage = faceBeingReplaced
-                squares[squareIdBeingDragged].style.backgroundImage = faceBeingDragged
-
-                const temp = squares[squareBeingReplaced].dataset.isBuzzer
-                squares[squareBeingReplaced].dataset.isBuzzer = squares[squareIdBeingDragged].dataset.isBuzzer
-                squares[squareIdBeingDragged].dataset.isBuzzer = temp
-
-                // console.log(" - No match. Reverted swap.")
-            } else {
-                gameLoop()
-            }
-        } else {
-            squares[squareBeingReplaced].style.backgroundImage = faceBeingReplaced
-            squares[squareIdBeingDragged].style.backgroundImage = faceBeingDragged
-
-            const temp = squares[squareBeingReplaced].dataset.isBuzzer
-            squares[squareBeingReplaced].dataset.isBuzzer = squares[squareIdBeingDragged].dataset.isBuzzer
-            squares[squareIdBeingDragged].dataset.isBuzzer = temp
-
-            // console.log(" - Invalid move. Reverted swap")
-        }
-
-        faceBeingDragged = null
-        squareIdBeingDragged = null
-        faceBeingReplaced = null
-        squareBeingReplaced = null
-    }
-
-    createBoard() // now we call the function to actually build the board and see if it works
-
-
-
-    squares.forEach(square => { // loops through each square in the squares arr. it listens for certain drag and drop e and calls the functions when those e happen
-        //    console.log('Setting up drag events for square ID:', square.id)
-
-        square.addEventListener('dragstart', dragStart) // when player starts dragging a square dragStart runs
-        square.addEventListener('dragover', dragOver) // when dragged item is moved over a square dragOver runs
-        square.addEventListener('dragenter', dragEnter) // when a dragged item enters a square dragEnter runs
-        square.addEventListener('drop', dragDrop) // when the dragged item is dropped on a square dragDrop runs
-        square.addEventListener('dragend', dragEnd) // when the drag finishes dragEnd runs
-    })
-
-    startTimer()
-    setInterval(gameLoop, 100)
+    }, 100)
 
 
 
 
 
-
-})
-// this is part of my boiler plate set up
+}
