@@ -28,6 +28,14 @@ body{
     color: white;
 }
 
+.header{
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    text-align: center;
+    margin-top: 20px;
+}
+
 h1{
     margin: 10px 0;
     color: white;
@@ -81,7 +89,7 @@ h3{
     background-repeat: no-repeat;
 }
 
-.invisble{
+.invisible{
     background-color: white;
 }
 

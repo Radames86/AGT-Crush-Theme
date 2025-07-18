@@ -1,5 +1,6 @@
 <!DOCTYPE html>
 <html lang="en">
+
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
@@ -7,15 +8,23 @@
     <link rel="stylesheet" href="style.css">
     <script src="main.js" defer></script>
 </head>
+
 <body>
-    <h1>AGT Crush</h1>
-    <div class="scorreBoard">
+    <div class="header">
+        <h1>AGT Crush</h1>
+        <div>
+            <h2 id="timeleft"><b>Time left: <span id="timer">60</span> seconds</b></h2>
+        </div>
+    </div>
+
+    <div class="scoreBoard">
         <h2 id="score">
-        <p>Score: <span id="score">0</span></p>
-        <p>Level: <span id="level">1</span></p>
-    </h2>
+            <p>Score: <span id="score">0</span></p>
+            <p>Level: <span id="level">1</span></p>
+        </h2>
     </div>
     <div class="grid"></div>
-    <div ><h2 id="timeleft"><b>Time left: <span id="timer">60</span> seconds</b></h2></div>
+
 </body>
+
 </html>

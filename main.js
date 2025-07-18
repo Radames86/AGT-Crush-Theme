@@ -6,9 +6,11 @@ document.addEventListener('DOMContentLoaded', () => {
 function agtCrushGame() {
     const grid = document.querySelector(".grid")// i am telling my js file to look at my html file to grab the element with the class name grid
     const scorerDisplay = document.querySelector("#score")
+    const timerDisplay = document.querySelector("#timer")
     const width = 8 //tellin my js file that i want the width to be 8 from now on
     const squares = []// keeps track of each square that's made and it gets stored in the empty array
     let score = 0
+    let timeLeft = 180
 
     const agtFaces = [ //stores judges face images
         'url(./images/sofia.png)',
@@ -61,6 +63,19 @@ function agtCrushGame() {
 
     })
 
+    function startTimer(){
+        const timerId = setInterval(() =>{
+            if(timeLeft <= 0){
+                clearInterval(timerId)
+                console.log('Time is up! Game Over.')
+                alert("Time's up! Game Over")
+                return
+            }
+            timeLeft--
+            timerDisplay.textContent = timeLeft
+        }, 1000)
+    }startTimer()
+
     function dragStart() {
         squareBeingDragged = this
         squareBeingDraggedId = parseInt(this.id)
@@ -98,49 +113,52 @@ function agtCrushGame() {
     }
     console.log(squareBeingDraggedId, squareBeingReplacedId)
 
-    function dragEnd() {
-        const validMoves = [
-            squareBeingDraggedId - 1,
-            squareBeingDraggedId - width,
-            squareBeingDraggedId + 1,
-            squareBeingDraggedId + width
-        ]
+   function dragEnd() {
+    const validMoves = [
+        squareBeingDraggedId - 1,
+        squareBeingDraggedId - width,
+        squareBeingDraggedId + 1,
+        squareBeingDraggedId + width
+    ];
 
-        const isValidMove = validMoves.includes(squareBeingReplacedId)
+    const isValidMove = validMoves.includes(squareBeingReplacedId);
 
-        console.log('Drag end:', {
-            draggedId: squareBeingDraggedId,
-            replaceID: squareBeingReplacedId,
-            isValidMove: isValidMove
-        })
+    console.log('Drag end:', {
+        draggedId: squareBeingDraggedId,
+        replaceID: squareBeingReplacedId,
+        isValidMove: isValidMove
+    });
 
-        if (!squareBeingReplaced || isValidMove) {
-            console.log('Invalid move, reverting...')
-            if (squareBeingDragged && squareBeingReplaced) {
-                squares[squareBeingDraggedId].style.backgroundImage = squareBeingDraggedImage
-                squares[squareBeingReplacedId].style.backgroundImage = squareBeingReplacedImage
-            }
-            resetDragVars()
-            return
+    // reverts back if no square is replaced or the move is invalid
+    if (!squareBeingReplaced || !isValidMove) {
+        console.log('Invalid move, reverting...');
+        if (squareBeingDragged && squareBeingReplaced) {
+            squares[squareBeingDraggedId].style.backgroundImage = squareBeingDraggedImage;
+            squares[squareBeingReplacedId].style.backgroundImage = squareBeingReplacedImage;
         }
-        // this swaps images temporarily
-        squares[squareBeingDraggedId].style.backgroundImage = squareBeingReplacedImage
-        squares[squareBeingReplacedId].style.backgroundImage = squareBeingDraggedImage
-
-        // this checks for matches
-        const isMatch = isMatchFound()
-        console.log('Match found:', isMatch)
-
-        if (!isMatch) {
-            console.log('No match, reverting... swap')
-            squares[squareBeingDraggedId].style.backgroundImage = squareBeingDraggedImage
-            squares[squareBeingReplacedId].style.backgroundImage = squareBeingReplacedImage
-        } else {
-            console.log('Match found! Move accepted.')
-            moveFacesDown()
-        }
-        resetDragVars
+        resetDragVars();
+        return;
     }
+
+    // Swap images temporarily
+    squares[squareBeingDraggedId].style.backgroundImage = squareBeingReplacedImage;
+    squares[squareBeingReplacedId].style.backgroundImage = squareBeingDraggedImage;
+
+    // Check for matches
+    const isMatch = isMatchFound();
+    console.log('Match found:', isMatch);
+
+    if (!isMatch) {
+        console.log('No match, reverting... swap');
+        squares[squareBeingDraggedId].style.backgroundImage = squareBeingDraggedImage;
+        squares[squareBeingReplacedId].style.backgroundImage = squareBeingReplacedImage;
+    } else {
+        console.log('Match found! Move accepted.');
+        moveFacesDown();
+    }
+
+    resetDragVars();
+}
 
     function resetDragVars() {
         squareBeingDragged = null
@@ -319,9 +337,12 @@ function agtCrushGame() {
                         squares[index].style.backgroundImage = ""
                         squares[index].dataset.special = ""
                     }
+                    
                 })
+                return true
             }
         }
+        return false
     }
 
 
@@ -352,8 +373,10 @@ function agtCrushGame() {
                         squares[index].dataset.special = ""
                     }
                 })
+                return true
             }
         }
+        return false
     }
 
 
@@ -414,8 +437,10 @@ function agtCrushGame() {
                         squares[index].dataset.special = ""
                     }
                 })
+                return true
             }
         }
+        return false
     }
 
 
