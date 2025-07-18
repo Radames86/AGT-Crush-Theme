@@ -189,7 +189,7 @@ function agtCrushGame() {
         const match = imageUrl.match(/\/([a-z]+)-buzzer\.(png|jpg|jpeg)/i)
         const result = match ? match[1] : ""
 
-        console.log("Extracted buzzer from:", imageUrl, "→", result) //find another way to console.log
+        console.log("Extracted buzzer from:", imageUrl, "→", result) 
         return result
     }
     console.log(getBuzzerType('url("./images/golden-buzzer.jpg")'))
