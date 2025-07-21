@@ -3,14 +3,15 @@
 document.addEventListener('DOMContentLoaded', () => {
     agtCrushGame()
 })
+
 function agtCrushGame() {
     const grid = document.querySelector(".grid")// i am telling my js file to look at my html file to grab the element with the class name grid
-    const scorerDisplay = document.querySelector("#score")
-    const timerDisplay = document.querySelector("#timer")
-    const width = 8 //tellin my js file that i want the width to be 8 from now on
+    const scorerDisplay = document.querySelector("#score") // selects score display element 
+    const timerDisplay = document.querySelector("#timer") // selects timer display element
+    const width = 8 //tellin my js file that i want the width to be 8(columns) from now on 
     const squares = []// keeps track of each square that's made and it gets stored in the empty array
-    let score = 0
-    let timeLeft = 180
+    let score = 0 // initializes players score
+    let timeLeft = 180 // starts timer countdown of 3 min
 
     const agtFaces = [ //stores judges face images
         'url(./images/sofia.png)',
@@ -20,27 +21,28 @@ function agtCrushGame() {
         'url(./images/terry.png)',
         'url(./images/mel.png)'
     ]
-    const agtBuzzer = [
+    const agtBuzzer = [ // array of buzzer imgs (special items)
         'url(./images/golden-buzzer.jpg)',
         'url(./images/red-buzzer.jpg)'
     ]
 
-    //this func builds grid
+    //this func builds visual grid
     function createBoard() {
         // console.log('Creating board')
-        for (let i = 0; i < width * width; i++) { // here we are looping over something 64 times (8 rows * 8 columns) incrementing by 1 each time from 0
-            const square = document.createElement('div')//with createElement we are creating the div element in our html using js // we're creating a div everytime it loops 
+        for (let i = 0; i < width * width; i++) { // here we are looping over something 64 times (8 rows * 8 columns) incrementing by 1 each time from 0 
+            const square = document.createElement('div')//with createElement we are creating a new div for each square // we're creating a div everytime it loops 
             square.setAttribute('draggable', true) // we're allowing it to become draggable
-            square.setAttribute('id', i) // we're giving it a unique id
+            square.setAttribute('id', i) // we're giving it a unique id (0-63)
 
-            let randomFace = Math.floor(Math.random() * agtFaces.length) //this picks ajudges face or image at random
-            square.style.backgroundImage = agtFaces[randomFace]
-            grid.appendChild(square) // we add the div to html grid
-            squares.push(square)// we push the square into the array called squares
+            let randomFace = Math.floor(Math.random() * agtFaces.length) //this picks a judges face or image at random
+            square.style.backgroundImage = agtFaces[randomFace] // this sets the square's background
+            grid.appendChild(square) // we add the div to html grid container
+            squares.push(square)// we push the square into the array called squares // stores the square in arr.
         }
     }
-    createBoard()
+    createBoard() // calls the function to actually buil the board
 
+    // variables to track drag events
     let squareBeingDragged
     let squareBeingDraggedId
     let squareBeingDraggedImage
@@ -63,37 +65,41 @@ function agtCrushGame() {
 
     })
 
+        //manages the game countdown timer
     function startTimer(){
         const timerId = setInterval(() =>{
-            if(timeLeft <= 0){
-                clearInterval(timerId)
+            if(timeLeft <= 0){ // checks if time is up
+                clearInterval(timerId) // stops the timer
                 console.log('Time is up! Game Over.')
-                alert("Time's up! Game Over")
+                alert("Time's up! Game Over") // notify player
                 return
             }
-            timeLeft--
-            timerDisplay.textContent = timeLeft
-        }, 1000)
-    }startTimer()
+            timeLeft-- // decrement timer by 1
+            timerDisplay.textContent = timeLeft // updates timer user interface
+        }, 1000) // run every second
+    }startTimer() // starts the timer immediately
 
+
+    // records info when drag starts
     function dragStart() {
-        squareBeingDragged = this
-        squareBeingDraggedId = parseInt(this.id)
-        squareBeingDraggedImage = this.style.backgroundImage
-        console.log("Drag start:", squareBeingDraggedId, squareBeingDraggedImage)
+        squareBeingDragged = this // current square
+        squareBeingDraggedId = parseInt(this.id) // store its id as num
+        squareBeingDraggedImage = this.style.backgroundImage // store its face
+        console.log("Drag start:", squareBeingDraggedId, squareBeingDraggedImage) //debugs log
     }
     function dragOver(e) {
-        e.preventDefault()
+        e.preventDefault() // allows dropping 
     }
 
     function dragEnter(e) {
-        e.preventDefault()
+        e.preventDefault() // also allows dropping 
     }
 
     function dragLeave() {
-
+        // placeholder for potential future use
     }
 
+    // checks if any valid match pattern exists
     function isMatchFound() {
         return (
             checkRowForFive() ||
@@ -105,23 +111,25 @@ function agtCrushGame() {
         )
     }
 
+    // records info when drop occurs
     function dragDrop() {
-        squareBeingReplaced = this
-        squareBeingReplacedId = parseInt(this.id)
-        squareBeingReplacedImage = this.style.backgroundImage
+        squareBeingReplaced = this // the square is dropped onto
+        squareBeingReplacedId = parseInt(this.id) // stores its id
+        squareBeingReplacedImage = this.style.backgroundImage // stores its face
         console.log("Drag drop:", squareBeingReplacedId, squareBeingDraggedImage)
     }
-    console.log(squareBeingDraggedId, squareBeingReplacedId)
+    console.log(squareBeingDraggedId, squareBeingReplacedId) // logs undefined until drag happens
 
    function dragEnd() {
-    const validMoves = [
+    console.log("Dragged ID:", squareBeingDraggedId, "→ Replaced ID:", squareBeingReplacedId)
+    const validMoves = [ // allowed swap positions surrounding the selected square
         squareBeingDraggedId - 1,
         squareBeingDraggedId - width,
         squareBeingDraggedId + 1,
         squareBeingDraggedId + width
     ];
 
-    const isValidMove = validMoves.includes(squareBeingReplacedId);
+    const isValidMove = validMoves.includes(squareBeingReplacedId); // checks if swap is neighboring
 
     console.log('Drag end:', {
         draggedId: squareBeingDraggedId,
@@ -129,7 +137,7 @@ function agtCrushGame() {
         isValidMove: isValidMove
     });
 
-    // reverts back if no square is replaced or the move is invalid
+    // swaps back if no square is replaced or the move is invalid
     if (!squareBeingReplaced || !isValidMove) {
         console.log('Invalid move, reverting...');
         if (squareBeingDragged && squareBeingReplaced) {
@@ -144,7 +152,7 @@ function agtCrushGame() {
     squares[squareBeingDraggedId].style.backgroundImage = squareBeingReplacedImage;
     squares[squareBeingReplacedId].style.backgroundImage = squareBeingDraggedImage;
 
-    // Check for matches
+    // Checks for any matches
     const isMatch = isMatchFound();
     console.log('Match found:', isMatch);
 
@@ -154,12 +162,13 @@ function agtCrushGame() {
         squares[squareBeingReplacedId].style.backgroundImage = squareBeingReplacedImage;
     } else {
         console.log('Match found! Move accepted.');
-        moveFacesDown();
+        moveFacesDown(); // drop pieces after a match
     }
 
-    resetDragVars();
+    resetDragVars(); // clears drag state
 }
 
+    // resets drag traking variables to null
     function resetDragVars() {
         squareBeingDragged = null
         squareBeingReplaced = null
@@ -169,13 +178,15 @@ function agtCrushGame() {
         squareBeingReplacedImage = null
     }
 
+        // parse judge name from img url
     function getJudgeName(imageUrl) {
-        if (!imageUrl || imageUrl === "") return ""
-        const match = imageUrl.match(/\/images\/(.*?)\./)
+        if (!imageUrl || imageUrl === "") return "" // early exit if empty
+        const match = imageUrl.match(/\/images\/(.*?)\./) //regex to capture filename
         return match ? match[1] : ""
     }
-    console.log(getJudgeName('url("./images/simon.png")'))
+    console.log(getJudgeName('url("./images/simon.png")')) //tests parse function
 
+    // makes tiles fall down to fill empty slots, then refills top row
     function moveFacesDown() {
         let moved
         do {
@@ -183,8 +194,8 @@ function agtCrushGame() {
             for (let i = (width * width) - width - 1; i >= 0; i--) {
                 if (squares[i + width].style.backgroundImage === "" && squares[i].style.backgroundImage !== "") {
                     console.log(`Moving piece from ${i} down to ${i + width}`)
-                    squares[i + width].style.backgroundImage = squares[i].style.backgroundImage
-                    squares[i].style.backgroundImage = ""
+                    squares[i + width].style.backgroundImage = squares[i].style.backgroundImage // drops piece
+                    squares[i].style.backgroundImage = "" // clears original slot
                     moved = true
                 }
             }
@@ -200,7 +211,7 @@ function agtCrushGame() {
         }
     } console.log("Completed movesFacesDown function ")
 
-
+    // parse buzzer type from img url
     function getBuzzerType(imageUrl) {
         if (!imageUrl) return ""
 
@@ -210,8 +221,9 @@ function agtCrushGame() {
         console.log("Extracted buzzer from:", imageUrl, "→", result) 
         return result
     }
-    console.log(getBuzzerType('url("./images/golden-buzzer.jpg")'))
+    console.log(getBuzzerType('url("./images/golden-buzzer.jpg")')) // test parser
 
+    // test function to clear a 3 by 3 area around index
     function activateAgtFaces(index) {
         const neighbors = [
             index,
@@ -223,14 +235,16 @@ function agtCrushGame() {
 
         neighbors.forEach(i => {
             if (squares[i]) {
-                squares[i].style.backgroundImage = ""
-                squares[i].dataset.special = ""
+                squares[i].style.backgroundImage = "" // clears img
+                squares[i].dataset.special = "" // clears special marker
                 console.log(`Cleared square at index ${i}`)
             }
         })
     }
-    activateAgtFaces()
+    activateAgtFaces(10) // test-clears around tile 10
 
+
+    // tests function to clear entire row/column based on buzzer
     function activateBuzzerBlast(index, direction) {
         if (!squares[index]) return
 
@@ -257,13 +271,14 @@ function agtCrushGame() {
             }
         }
     }
-    activateBuzzerBlast()
+    activateBuzzerBlast(20, "horizontal") // tests blast row at index 20
 
 
+        // function to find 5 in a row horizontally
     function checkRowForFive() {
         const notValid = []
         for (let i = 0; i < 64; i++) {
-            if (i % width > width - 5) notValid.push(i)
+            if (i % width > width - 5) notValid.push(i) // skip i near row ends
         }
         for (let i = 0; i < 64; i++) {
             if (notValid.includes(i)) continue
@@ -276,7 +291,7 @@ function agtCrushGame() {
                 squares[index] && squares[index].style.backgroundImage === decidedFace && !isBlank
             )) {
                 rowOfFive.forEach(index => {
-                    squares[index].style.backgroundImage = ""
+                    squares[index].style.backgroundImage = "" // clears match
                 })
                 return true
             }
@@ -284,7 +299,7 @@ function agtCrushGame() {
         return false
     }
 
-
+    // function to find 5 in a column
     function checkColumnForFive() {
         for (let i = 0; i < 24; i++) {
             let columnOfFive = [i, i + width, i + width * 2, i + width * 3, i + width * 4]
@@ -303,14 +318,14 @@ function agtCrushGame() {
         return false
     }
 
-
+    // function to find 4 ina row // creates buzzer
     function checkRowForFour() {
         for (let i = 0; i < 60; i++) {
             const rowOfFour = [i, i + 1, i + 2, i + 3]
             const decidedFace = squares[i].style.backgroundImage
             const isBlank = decidedFace === ""
 
-            const notValid = [
+            const notValid = [ // indices near ends
                 5, 6, 7, 13, 14, 15, 21, 22, 23, 29, 30, 31,
                 37, 38, 39, 45, 46, 47, 53, 54, 55
             ]
@@ -321,14 +336,14 @@ function agtCrushGame() {
             )) {
                 console.log("Row of Four at:", rowOfFour)
 
-                score += 4
-                scorerDisplay.innerHTML = score
+                score += 4 // increases score
+                scorerDisplay.innerHTML = score // updates user interface
 
                 const buzzerImage = agtBuzzer[Math.floor(Math.random() * agtBuzzer.length)]
 
                 const specialIndex = rowOfFour[Math.floor(Math.random() * 4)]
                 squares[specialIndex].style.backgroundImage = buzzerImage
-                squares[specialIndex].dataset.special = "buzzer"
+                squares[specialIndex].dataset.special = "buzzer" // marks special square
 
                 console.log("Buzzer created at index", specialIndex, ":", buzzerImage)
 
@@ -346,7 +361,7 @@ function agtCrushGame() {
     }
 
 
-
+    // function to find 4 in a column // similar to row
     function checkColumnForFour() {
         for (let i = 0; i < 39; i++) {
             const columnOfFour = [i, i + width, i + width * 2, i + width * 3]
@@ -379,7 +394,7 @@ function agtCrushGame() {
         return false
     }
 
-
+    // similar logic for three in row same as four and five
     function checkRowForThree() {
         for (let i = 0; i < 64; i++) {
             const rowOfThree = [i, i + 1, i + 2]
@@ -397,7 +412,7 @@ function agtCrushGame() {
             )) {
                 //this clears matched squares
                 rowOfThree.forEach(index => {
-                    squares[index].style.backgroundImage = ""
+                    squares[index].style.backgroundImage = "" // clear
                 })
                 return true
             }
@@ -405,14 +420,14 @@ function agtCrushGame() {
         return false // makes sure to return false if no match is found
     }
 
-
+    //vertical three oin column match with buzzer
     function checkColumnForThree() {
         for (let i = 0; i < 47; i++) {
             const columnOfThree = [i, i + width, i + width * 2]
             const judgeImage = squares[i].style.backgroundImage
             const isBlank = judgeImage === ""
 
-            const judgeName = getJudgeName(judgeImage)
+            const judgeName = getJudgeName(judgeImage) // extract face name
 
             if (columnOfThree.every(index => {
                 const img = squares[index].style.backgroundImage
@@ -443,7 +458,7 @@ function agtCrushGame() {
         return false
     }
 
-
+    // detects L-shaped matches of 5
     function checkLShape() {
         for (let i = 0; i < 64; i++) {
             let decidedFace = squares[i].style.backgroundImage
@@ -466,7 +481,7 @@ function agtCrushGame() {
                         squares[index].style.backgroundImage === decidedFace && !isBlank
                 })) {
                     shape.forEach(function (index) {
-                        squares[index].style.backgroundImage = ""
+                        squares[index].style.backgroundImage = "" // clears L-shaped pieces
                     })
                     return true
                 }
@@ -476,6 +491,7 @@ function agtCrushGame() {
         return false
     }
 
+    // main game loop: continually checks for matches and gravity
     window.setInterval(function () {
 
         checkColumnForFive()
@@ -485,7 +501,7 @@ function agtCrushGame() {
         checkRowForFour()
         checkColumnForThree()
         checkRowForThree()
-        moveFacesDown()
+        moveFacesDown() // keeps board updated constantly
 
     }, 100)
 
@@ -493,4 +509,4 @@ function agtCrushGame() {
 
 
 
-}
+} // ends agtCrushGame()
